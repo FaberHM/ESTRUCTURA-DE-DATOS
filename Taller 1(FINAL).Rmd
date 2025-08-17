@@ -1,0 +1,280 @@
+---
+title: "Taller 1"
+author: "FABER HERNANDEZ"
+date: "2025-07-24"
+output:
+  word_document:
+    toc: false
+    number_sections: true
+---
+
+::: custombox
+**Menú de Navegación**
+
+-   [Introducción](#introducción)
+-   [Análisis de Datos](#análisis-de-datos)
+-   [Resultados](#resultados)
+-   [Conclusiones](#conclusiones)
+:::
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set()
+```
+
+# Contexto
+
+Un concesionario desea perfilar a sus clientes con el fin de mejorar sus estrategias en ventas. Para ello, ha creado una tabla que contiene información sobre aspectos socieconómicos de sus clientes.\
+
+El Objetivo de esta actividad consiste en practicar el uso de herramientas del lenguaje de programación R para analizar la base de datos denominada *base_concesionario*, y generar un informe que de cuenta de los hallazgos, metodologías y exploración de los datos.
+
+# Actividades
+
+## Análisis exploratorio de la base de datos
+
+a.  Cargar la base de datos denominada *base_concesionario*.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(readxl)
+library(dplyr)
+library(readr)
+dataf <- read_excel("C:/Users/faber/Downloads/df.xlsx", 
+       sheet = "TABLA PERSONAS")
+dataf <- dataf[-c(1, 2), ]
+head(dataf)
+```
+
+b.  Realizar una exploración de la base de tal manera que se pueda definir cuántos clientes están registrados, qué variables están asociadas a los clientes.
+
+```{r message=FALSE, warning=FALSE}
+num_row <- sum(!is.na(dataf$PERSONA))
+num_col <- ncol(dataf)
+
+print(c(num_row,num_col))
+```
+
+c.  Identificar y contar los datos faltantes que se tengan en la base de datos.
+
+```{r message=FALSE, warning=FALSE}
+
+
+variables <- c("EDAD", "SEXO", "ESTATURA", "NIVEL ESCOLAR", 
+               "MARCA DE AUTO", "NUMERO DE HIJOS", "SALARIO", "MASCOTA")
+valores_na <- sapply(variables, function(var) sum(is.na(dataf[[var]])))
+tabla_na <- data.frame(Variable = variables, NA_Registrados = valores_na)
+tabla_na
+
+
+```
+
+d.  Utilizar y aplicar estrategias que permitan identificar registros incompletos, valores inconsistentes y otras características que podrían afectar el análisis de los datos de la base.
+
+```{r message=FALSE, warning=FALSE}
+valoresfal <- dataf[!complete.cases(dataf), ]
+valoresfal
+```
+
+## Análisis de la variable "marca de auto"
+
+a.  Evaluar la variable "Marca de auto" y determinar si hay datos faltantes, en caso de que los haya, se requiere proponer una metodología que permita tratar con este tipo de datos.
+
+```{r message=FALSE, warning=FALSE}
+falcar <- sum(is.na(dataf$"MARCA DE AUTO"))
+print(falcar)
+```
+
+En este tipo de variable propondria llenar los valores que estan en NA y vacios con la moda o los eliminaria aunque se perderian datos que pueden ser importantes
+
+b.  Crear una tabla de frecuencias que permita determinar la preferencia en marcas de autos de los clientes.
+
+```{r message=FALSE, warning=FALSE}
+marcas <- c("AUDI", "RENAULT", "BMW", "RENAULT", "AUDI", "audi", "BMW", 
+           "RENAULT", "renault", "RENAULT", "CHEVROLET", "chevrolet", 
+           NA, "BMW", "RENAULT", "BMW", "CHEVROLET", "BMW", "AUDI", 
+           "bmw", "FORD", "AUDI", "CHEVROLET", "FORD", "AUDI", 
+           "CHEVROLET", "CHEVROLET", "FORD", "ford", "FORD", "BMW", 
+           NA, "RENAULT", "CHEVROLET", "CHEVROLET", "renault", 
+           "AUDI", "FORD", "FOR", "BWM", "AUDI", "AUDI", "BMW", 
+           "RENAULT", "RENAULT", "RENAULT", "CHEVROLET", "CHEVROLET", 
+           NA, "BMW", "RENAULT", "BMW", "CHEVROLET", "AUDI", 
+           "CHEVROLET", "AUDI", "BMW", "RENAULT", "AUDI", "AUDI")
+
+# Estandarización de marcas
+dataf$`MARCA DE AUTO` <- toupper(dataf$`MARCA DE AUTO`)
+dataf$`MARCA DE AUTO`[is.na(dataf$`MARCA DE AUTO`)] <- "DESCONOCIDO"
+dataf$`MARCA DE AUTO`[dataf$`MARCA DE AUTO` == "BWM"] <- "BMW"
+dataf$`MARCA DE AUTO`[dataf$`MARCA DE AUTO` == "FOR"] <- "FORD"
+dataf$`MARCA DE AUTO`[dataf$`MARCA DE AUTO` == "NA"] <- "DESCONOCIDO"
+
+# Tabla de frecuencias
+library(dplyr)
+
+dataf %>% 
+  select(`MARCA DE AUTO`) %>% 
+  rename(Categoria = `MARCA DE AUTO`) %>% 
+  group_by(Categoria) %>% 
+  summarise(Frecuencia = n()) %>% 
+  mutate(Porcentaje = round(Frecuencia/sum(Frecuencia)*100, 1)) %>% 
+  arrange(desc(Frecuencia))
+
+```
+
+c.  Haciendo uso de la librería *ggplot2* de R, generar un gráfico de barras y de sectores que permita visualizar la distribución de las marcas de autos entre los clientes.
+
+```{r message=FALSE, warning=FALSE}
+library(ggplot2)
+ggplot(dataf, aes(x = `MARCA DE AUTO`)) + 
+  geom_bar(fill = "darkgreen") +
+  geom_text(stat = "count", aes(label = ..count..), vjust = -0.5, size = 3) +
+  labs(title = "Clientes por Marca de Auto", 
+       x = "Marca", 
+       y = "Cantidad de Clientes") +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, NA)) +
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.text.x = element_text(size = 7)
+  )
+```
+```{r message=FALSE, warning=FALSE}
+library(ggplot2)
+
+# dataframe de frecuencias
+df_marca <- as.data.frame(table(dataf$`MARCA DE AUTO`))
+colnames(df_marca) <- c("marca", "frecuencia")
+
+# Calcular porcentajes
+df_marca$porcentaje <- round(df_marca$frecuencia / sum(df_marca$frecuencia) * 100, 1)
+
+# grafico
+ggplot(df_marca, aes(x = "", y = frecuencia, fill = marca)) +
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  geom_text(aes(label = paste0(porcentaje, "%")),
+            position = position_stack(vjust = 0.5), 
+            size = 3) + 
+  coord_polar("y") +
+  theme_void() +
+  labs(title = "Distribucion de marcas de autos",
+       fill = "Marca") +  
+  scale_fill_brewer(palette = "Set3") +
+  theme(legend.position = "right")
+```
+
+d.  Proporcionar una conclusión a partir de la información que se haya extraído en el desarrollo de los numerales anteriores.
+
+
+Conclusión: podemos inferir que las marcas de autos con mayor preferencia son "AUDI" y "RENAULT" con un porcentaje del 21.7% y la marca con menos favoritismo es "CHEVROLET" con un porcentaje de 11.7% 
+
+
+## Análisis de la variable edad
+
+a.  Verificar si la variable edad está correctamente definida como tipo *numérico*.
+
+```{r message=FALSE, warning=FALSE}
+class(dataf$EDAD)
+dataf$EDAD <- as.numeric(dataf$EDAD)
+```
+
+
+b.  Identificar algún tipo de anomalía en la variable y si es el caso corregirla.
+
+```{r message=FALSE, warning=FALSE}
+nae <- !is.na(dataf$EDAD)
+table(nae)
+```
+Se puede ver que hay dos filas con NA y una fila con un dato incongruente, para dar solucion a esto se estandariza con la moda 
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+
+#mo <-  dataf %>%
+ # filter(!is.na(EDAD)) %>%
+ # pull(EDAD) %>%
+ # mlv(method = "mfv")
+
+dataf <- dataf %>%
+  mutate(EDAD = case_when(
+    is.na(EDAD) ~ 30,  
+    EDAD == "NA" ~ 30,  
+    EDAD == 10 ~ 30,
+    TRUE ~ as.numeric(EDAD)
+  ))
+``` 
+
+
+
+c.  Haciendo uso de la librería *ggplot2* de R, realizar un histogramas de la variable edad y describir características de distribución de la variable.
+
+```{r message=FALSE, warning=FALSE}
+ggplot(dataf, aes(x = EDAD)) +
+  geom_histogram(binwidth = 5, fill = "darkgreen", color = "black", boundary = 0) +
+  scale_x_continuous(breaks = seq(0, max(dataf$EDAD, na.rm = TRUE), 5)) +
+  scale_y_continuous(
+    breaks = 0:max(hist(as.numeric(dataf$EDAD), breaks = seq(0, max(dataf$EDAD, na.rm = TRUE) + 5, 5), plot = FALSE)$counts),
+    expand = expansion(mult = c(0, 0.05))
+  ) +
+  labs(title = "Distribucion de la Edad de los Clientes", x = "Edad", y = "Frecuencia") +
+  theme_minimal() +
+  theme(
+    panel.grid = element_blank(),
+    axis.line = element_line(),
+    plot.title = element_text(hjust = 0.5),
+    panel.border = element_blank()
+)
+```
+
+
+## Análisis de la variable sexo
+
+a.  Revisar la consistencia de la variable "SEXO" y realizar correcciones en caso de encontrar valores inusuales o inconsistentes.
+
+```{r message=FALSE, warning=FALSE}
+dataf <- dataf %>%
+  mutate(SEXO = case_when(
+    is.na(SEXO) ~ "Indefinido",
+    toupper(SEXO) %in% c("M", "HOMBRE", "H") ~ "Hombre",
+    toupper(SEXO) %in% c("F", "MUJER") ~ "Mujer",
+    #TRUE ~ NA_character_
+  ))
+```
+
+
+b.  Crear una tabla de frecuencias y extraer conclusiones sobre la proporción de hombres y de mujeres en el conjunto de clientes.
+
+```{r}
+library(dplyr)
+
+resumen_sexo <- dataf %>%
+  count(SEXO) %>%
+  mutate(
+    Proporcion = n / sum(n) * 100,
+    Proporcion = round(Proporcion, 1)
+  ) %>%
+  rename(
+    Sexo = SEXO,
+    Frecuencia = n,
+    "%" = Proporcion
+  )
+
+print(resumen_sexo)
+
+
+```
+```{r}
+ggplot(resumen_sexo, aes(x = Sexo, y = Frecuencia, fill = Sexo)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = paste0(Frecuencia, " (", `%`, "%)")), 
+            vjust = -0.5, size = 4) +
+  labs(title = "Distribucion de clientes por sexo",
+       x = "Sexo",
+       y = "Numero de clientes") +
+  theme_minimal() +
+  scale_fill_manual(values = c("Hombre" = "#1f77b4", "Mujer" = "#ff7f0e")) +
+  theme(legend.position = "none")
+```
+
+
+
+# Entrega de la actividad.
+
+Los resultados de esta actividad se deben enviar al correo [**atrillerasm\@unbosque.edu.co**](mailto:atrillerasm@unbosque.edu.co){.email} en la fecha definida para la entrega de talleres del corte I.
