@@ -28,7 +28,7 @@ SELECT
 FROM PRODUCTO p
 LEFT JOIN TRANSACCIONES t ON p.IDproducto = t.IDproducto
 GROUP BY p.IDproducto, p.NombreProducto
-HAVING TotalUnidadesVendidas = 0 OR TotalUnidadesVendidas < 10 -- Ajustar el umbral según el negocio
+HAVING TotalUnidadesVendidas = 0 OR TotalUnidadesVendidas < 10
 ORDER BY TotalUnidadesVendidas ASC;
 
 #consulta 2.1
